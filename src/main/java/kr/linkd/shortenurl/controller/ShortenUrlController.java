@@ -55,9 +55,31 @@ public class ShortenUrlController {
     }
 
     @GetMapping("/{shortKey}")
-    public ResponseEntity<Void> redirectToOriginal(@PathVariable String shortKey) {
-        String originalUrl = shortenUrlService.getOriginalUrl(shortKey);
+    public ResponseEntity<Void> redirectToOriginal(@PathVariable String shortKey, HttpServletRequest request) {
+        String originalUrl = shortenUrlService.getOriginalUrl(shortKey, getRequestIp(request));
         return ResponseEntity.status(HttpStatus.MOVED_PERMANENTLY).header("Location", originalUrl).build();
+    }
+
+    private String getRequestIp(HttpServletRequest request) {
+        String unknown = "unknown";
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.length() == 0 || unknown.equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || unknown.equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.length() == 0 || unknown.equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.length() == 0 || unknown.equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.length() == 0 || unknown.equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+
+        return ip;
     }
 
 }

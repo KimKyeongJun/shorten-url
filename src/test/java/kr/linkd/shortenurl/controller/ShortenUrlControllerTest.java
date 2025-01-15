@@ -102,7 +102,7 @@ class ShortenUrlControllerTest {
     @DisplayName("단축 URL로 원본 URL에 리다이렉션한다")
     void testRedirectToOriginal() throws Exception {
         // Mock 동작 정의
-        when(shortenUrlService.getOriginalUrl("1234567")).thenReturn("https://example.com");
+        when(shortenUrlService.getOriginalUrl("1234567", "127.0.0.1")).thenReturn("https://example.com");
         // 단축 URL "1234567"가 데이터베이스에 존재한다고 가정
         mockMvc.perform(get("/1234567"))
                 .andExpect(status().isMovedPermanently())

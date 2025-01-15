@@ -21,6 +21,7 @@ public class PageExceptionHandler {
     }
 
     @ExceptionHandler(LinkExpiredException.class)
+    @ResponseStatus(HttpStatus.GONE)
     public String handleLinkExpiredException() {
         return "expired";
     }

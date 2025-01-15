@@ -14,7 +14,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -43,7 +45,7 @@ public class ShortenUrlServiceImpl implements ShortenUrlService {
     }
 
     @Transactional(readOnly = true)
-    public String getOriginalUrl(String shortKey) {
+    public String getOriginalUrl(String shortKey, String requestIp) {
         UrlMapping mapping = urlMappingRepository.findByShortKey(shortKey);
 
         // 링크가 존재하지 않은 경우 Not Found Exception 발생 (404.html)
@@ -60,9 +62,19 @@ public class ShortenUrlServiceImpl implements ShortenUrlService {
                 .builder()
                 .urlMapping(mapping)
                 .accessTime(LocalDateTime.now())
+                .requestIp(requestIp)
                 .build();
         accessLogRepository.save(log);
 
         return mapping.getOriginalUrl();
+    }
+
+    @Override
+    @Transactional
+    public void expiredUrl(LocalDate date) {
+        List<UrlMapping> urlMappings = urlMappingRepository.findAllByExpiredDateAndLinkStatus(date, LinkStatus.ACTIVE);
+        for(UrlMapping urlMapping : urlMappings) {
+            urlMapping.updateLinkStatusExpired();
+        }
     }
 }

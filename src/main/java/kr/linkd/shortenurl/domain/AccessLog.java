@@ -28,4 +28,8 @@ public class AccessLog {
     @Comment("접속 시간")
     private LocalDateTime accessTime;
 
+    @Column
+    @Comment("요청 IP")
+    private String requestIp;
+
 }

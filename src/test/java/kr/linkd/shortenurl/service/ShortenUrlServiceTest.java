@@ -15,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,7 +106,7 @@ class ShortenUrlServiceTest {
 
         urlMappingRepository.save(mapping);
 
-        String result = shortenUrlService.getOriginalUrl(shortKey);
+        String result = shortenUrlService.getOriginalUrl(shortKey, "127.0.0.1");
         assertThat(originalUrl).isEqualTo(result);
     }
 
@@ -115,7 +116,7 @@ class ShortenUrlServiceTest {
         // Given
         String shortKey = "notfound";
 
-        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey))
+        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey, "127.0.0.1"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("해당 링크가 존재하지 않습니다.");
     }
@@ -137,7 +138,7 @@ class ShortenUrlServiceTest {
                 .build();
         urlMappingRepository.save(mapping);
 
-        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey))
+        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey, "127.0.0.1"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("해당 링크가 존재하지 않습니다.");
     }
@@ -159,8 +160,39 @@ class ShortenUrlServiceTest {
                 .build();
         urlMappingRepository.save(mapping);
 
-        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey))
+        assertThatThrownBy(() -> shortenUrlService.getOriginalUrl(shortKey, "127.0.0.1"))
                 .isInstanceOf(LinkExpiredException.class)
                 .hasMessage("해당 링크는 만료된 링크입니다.");
+    }
+
+    @Test
+    @DisplayName("만료일이 오늘인 링크를 만료 처리한다")
+    void testExpireLinksForToday() {
+        // Given
+        LocalDate today = LocalDate.now();
+        UrlMapping link1 = UrlMapping.builder()
+                .originalUrl("https://example1.com")
+                .shortKey("key1")
+                .expiredDate(today) // 만료일이 오늘
+                .linkStatus(LinkStatus.ACTIVE)
+                .build();
+        UrlMapping link2 = UrlMapping.builder()
+                .originalUrl("https://example2.com")
+                .shortKey("key2")
+                .expiredDate(today.plusDays(1)) // 만료일이 오늘이 아님
+                .linkStatus(LinkStatus.ACTIVE)
+                .build();
+
+        urlMappingRepository.saveAll(List.of(link1, link2));
+
+        // When
+        shortenUrlService.expiredUrl(today);
+
+        // Then
+        List<UrlMapping> allLinks = urlMappingRepository.findAll();
+        assertThat(allLinks).filteredOn(link -> link.getShortKey().equals("key1"))
+                .allMatch(link -> link.getLinkStatus() == LinkStatus.EXPIRED);
+        assertThat(allLinks).filteredOn(link -> link.getShortKey().equals("key2"))
+                .allMatch(link -> link.getLinkStatus() == LinkStatus.ACTIVE);
     }
 }

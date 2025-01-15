@@ -56,4 +56,7 @@ public class UrlMapping {
     @Column(name = "modify_time")
     private LocalDateTime modifyTime;
 
+    public void updateLinkStatusExpired() {
+        this.linkStatus = LinkStatus.EXPIRED;
+    }
 }
